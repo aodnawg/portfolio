@@ -5,7 +5,7 @@ const Social = () => {
     <>
       <ul>
         <li>
-          <a href="https://github.com/aodnawgw" target="_blank">
+          <a href="https://github.com/aodnawg" target="_blank">
             Github
           </a>
         </li>
