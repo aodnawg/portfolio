@@ -1,18 +1,24 @@
 import * as THREE from "three";
+import { Vector3 } from "three";
 
 let scene: THREE.Scene;
 let camera: THREE.Camera, width, height;
-let rainDropVelocitys: number[];
+let rainDropVelocitys: THREE.Vector3[];
 let rainGeo: THREE.Geometry;
 let renderer: THREE.WebGLRenderer;
+let europa: THREE.Mesh | undefined;
 
 const init = () => {
+  width = window.innerWidth;
+
+  height = window.innerHeight;
+
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera();
-  camera.position.z = 1;
-  camera.rotation.x = 1.16;
-  camera.rotation.y = -0.12;
-  camera.rotation.z = -0.27;
+  camera = new THREE.PerspectiveCamera(50, width / height);
+  camera.position.y = -10;
+  camera.position.z = 10;
+
+  camera.lookAt(new Vector3(0, 0, 0));
 
   const ambient = new THREE.AmbientLight();
   scene.add(ambient);
@@ -21,12 +27,11 @@ const init = () => {
   directionalLight.position.set(0, 1, 0);
   scene.add(directionalLight);
 
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(width, height);
   renderer.setClearColor(0xffffff);
+
+  // rain
 
   rainGeo = new THREE.Geometry();
   rainDropVelocitys = [];
@@ -36,7 +41,7 @@ const init = () => {
       Math.random() * 500 - 250,
       Math.random() * 400 - 200
     );
-    rainDropVelocitys.push(2 + Math.random() * 3);
+    rainDropVelocitys.push(new THREE.Vector3(0, -Math.random(), 0));
     rainGeo.vertices.push(rainDrop);
   }
 
@@ -50,6 +55,16 @@ const init = () => {
   const rain = new THREE.Points(rainGeo, rainMaterial);
   scene.add(rain);
 
+  // europa
+  const loader = new THREE.TextureLoader();
+  loader.load("./europa.jpg", (map) => {
+    const europaGeo = new THREE.SphereGeometry(3, 128, 128);
+    const europaMat = new THREE.MeshLambertMaterial({ map });
+    europa = new THREE.Mesh(europaGeo, europaMat);
+    europa.position.set(0, 0, 0);
+    scene.add(europa);
+  });
+
   const container = document.body;
   container.appendChild(renderer.domElement);
 
@@ -59,7 +74,7 @@ const init = () => {
 const animate = () => {
   if (rainGeo && rainDropVelocitys) {
     rainGeo.vertices.forEach((p, i) => {
-      p.y -= rainDropVelocitys[i];
+      p.add(rainDropVelocitys[i]);
       if (p.y < -200) {
         p.y = 200;
       }
@@ -68,6 +83,10 @@ const animate = () => {
   rainGeo.verticesNeedUpdate = true;
 
   renderer.render(scene, camera);
+
+  if (europa) {
+    europa.rotation.y += 0.001;
+  }
 
   requestAnimationFrame(animate);
 };
