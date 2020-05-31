@@ -19,7 +19,7 @@ const data = [
     c: "aodnawg",
   },
   { h: "job", c: "software engineer" },
-  { h: "interest", c: "web, frontend, user interface, conputer graphics" },
+  { h: "interest", c: "web frontend, user interface, computer graphics" },
   { h: "like", c: "Typescript, GLSL" },
 ];
 
