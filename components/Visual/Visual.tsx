@@ -4,7 +4,7 @@ import { mount } from "../../visual";
 const Visual = () => {
   useEffect(() => {
     mount();
-  });
+  }, []);
   return null;
 };
 
