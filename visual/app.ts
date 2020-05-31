@@ -24,7 +24,6 @@ const loadTextures = async <T extends string[]>(
   paths: T,
   cb: (textures: THREE.Texture[]) => void
 ) => {
-  console.log("loadTextures");
   const textures: any[] = [];
   const load = () => {
     const target = paths.shift()!;
@@ -42,8 +41,6 @@ const loadTextures = async <T extends string[]>(
 };
 
 const init = () => {
-  console.log("init");
-
   width = window.innerWidth;
   height = window.innerHeight;
 
@@ -102,7 +99,7 @@ const init = () => {
     }
   );
 
-  const container = document.body;
+  const container = document.getElementById("visual");
   container.appendChild(renderer.domElement);
 
   // post process
@@ -150,14 +147,35 @@ const animate = () => {
   } else {
     glitchPass.enabled = false;
   }
-  console.log(glitchPass.enabled, isGlitch);
   composer.render();
 
   requestAnimationFrame(animate);
 };
 
-const main = () => {
+const resize = () => {
+  renderer.setSize(width, height);
+  window.addEventListener("resize", () => {
+    console.log("set size");
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+};
+
+export const mount = () => {
+  const container = document.createElement("div");
+  container.setAttribute("id", "visual");
+  container.setAttribute(
+    "style",
+    `
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index; -1;
+  `
+  );
+  document.body.appendChild(container);
+
   init();
+  resize();
   animate();
 
   let texIdx = 0;
@@ -175,4 +193,3 @@ const main = () => {
     isGlitch = 1;
   });
 };
-main();
