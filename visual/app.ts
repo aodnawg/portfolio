@@ -39,27 +39,7 @@ const getWindowSize = () => {
   return { width, height };
 };
 
-const init = () => {
-  const scene = new THREE.Scene();
-  const { height, width } = getWindowSize();
-  const camera = new THREE.PerspectiveCamera(50, width / height);
-  camera.position.y = -10;
-  camera.position.z = 10;
-
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-  const ambient = new THREE.AmbientLight();
-  scene.add(ambient);
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.1);
-  directionalLight.position.set(0, -1, 0);
-  scene.add(directionalLight);
-
-  const renderer = new THREE.WebGLRenderer();
-  renderer.setSize(width, height);
-  renderer.setClearColor(0xffffff);
-
-  // rain
+const makeRain = () => {
   const rainGeo = new THREE.Geometry();
   const rainDropVelocitys = [];
   for (let i = 0; i <= 10000; i++) {
@@ -80,6 +60,49 @@ const init = () => {
     opacity: 0.5,
   });
   const rain = new THREE.Points(rainGeo, rainMaterial);
+
+  const updateRain = () => {
+    if (rainGeo && rainDropVelocitys) {
+      rainGeo.vertices.forEach((p, i) => {
+        p.add(rainDropVelocitys[i]);
+        if (p.y < -200) {
+          p.y = 200;
+        }
+      });
+    }
+    rainGeo.verticesNeedUpdate = true;
+    rain.position.z += 0.1;
+    if (rain.position.z > 50) {
+      rain.position.z = -50;
+    }
+  };
+
+  return { rain, updateRain };
+};
+
+const init = () => {
+  const scene = new THREE.Scene();
+  const { height, width } = getWindowSize();
+  const camera = new THREE.PerspectiveCamera(50, width / height);
+  camera.position.y = -10;
+  camera.position.z = 10;
+
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  const ambient = new THREE.AmbientLight();
+  scene.add(ambient);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.1);
+  directionalLight.position.set(0, -1, 0);
+  scene.add(directionalLight);
+
+  const renderer = new THREE.WebGLRenderer();
+  renderer.setSize(width, height);
+  renderer.setClearColor(0xffffff);
+
+  const { rain, updateRain } = makeRain();
+
+  // rain
   scene.add(rain);
 
   // europa
@@ -130,8 +153,7 @@ const init = () => {
 
   return {
     renderer,
-    rainDropVelocitys,
-    rainGeo,
+    updateRain,
     europa,
     composer,
     rain,
@@ -140,28 +162,8 @@ const init = () => {
   };
 };
 
-const animate = ({
-  rainDropVelocitys,
-  rainGeo,
-  europa,
-  composer,
-  rain,
-  glitchPass,
-}) => {
-  if (rainGeo && rainDropVelocitys) {
-    rainGeo.vertices.forEach((p, i) => {
-      p.add(rainDropVelocitys[i]);
-      if (p.y < -200) {
-        p.y = 200;
-      }
-    });
-  }
-  rainGeo.verticesNeedUpdate = true;
-  rain.position.z += 0.1;
-  if (rain.position.z > 50) {
-    rain.position.z = -50;
-  }
-
+const animate = ({ updateRain, europa, composer, rain, glitchPass }) => {
+  updateRain();
   if (europa) {
     europa.rotation.y += 0.001;
   }
@@ -178,7 +180,7 @@ const animate = ({
   composer.render();
 
   requestAnimationFrame(() =>
-    animate({ rainDropVelocitys, rainGeo, europa, composer, rain, glitchPass })
+    animate({ updateRain, europa, composer, rain, glitchPass })
   );
 };
 
@@ -207,8 +209,7 @@ export const mount = () => {
 
   const {
     renderer,
-    rainDropVelocitys,
-    rainGeo,
+    updateRain,
     europa,
     composer,
     rain,
@@ -216,7 +217,7 @@ export const mount = () => {
     glitchPass,
   } = init();
   resize(renderer);
-  animate({ rainDropVelocitys, rainGeo, europa, composer, rain, glitchPass });
+  animate({ updateRain, europa, composer, rain, glitchPass });
 
   let texIdx = 0;
   document.body.addEventListener("click", () => {
