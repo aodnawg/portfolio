@@ -6,18 +6,10 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { GlitchPass } from "./glitchPass";
 import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 
-let scene: THREE.Scene;
-let camera: THREE.Camera, width, height;
-let rainDropVelocitys: THREE.Vector3[];
-let rainGeo: THREE.Geometry;
-let renderer: THREE.WebGLRenderer;
-let europa: THREE.Mesh | undefined;
-let composer: EffectComposer;
-let rain: THREE.Points;
-let textures: THREE.Texture[];
-let europaMat: THREE.MeshLambertMaterial;
+import { makeParticles } from "./particle";
+
 let isGlitch: number = 0;
-let glitchPass: GlitchPass;
+let updateParticle: any;
 
 const loadTextures = async <T extends string[]>(
   loader: THREE.TextureLoader,
@@ -40,12 +32,17 @@ const loadTextures = async <T extends string[]>(
   load();
 };
 
-const init = () => {
-  width = window.innerWidth;
-  height = window.innerHeight;
+const getWindowSize = () => {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
 
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(50, width / height);
+  return { width, height };
+};
+
+const init = () => {
+  const scene = new THREE.Scene();
+  const { height, width } = getWindowSize();
+  const camera = new THREE.PerspectiveCamera(50, width / height);
   camera.position.y = -10;
   camera.position.z = 10;
 
@@ -58,13 +55,13 @@ const init = () => {
   directionalLight.position.set(0, -1, 0);
   scene.add(directionalLight);
 
-  renderer = new THREE.WebGLRenderer();
+  const renderer = new THREE.WebGLRenderer();
   renderer.setSize(width, height);
   renderer.setClearColor(0xffffff);
 
   // rain
-  rainGeo = new THREE.Geometry();
-  rainDropVelocitys = [];
+  const rainGeo = new THREE.Geometry();
+  const rainDropVelocitys = [];
   for (let i = 0; i <= 10000; i++) {
     const rainDrop = new THREE.Vector3(
       Math.random() * 100 - 50,
@@ -82,19 +79,21 @@ const init = () => {
     transparent: true,
     opacity: 0.5,
   });
-  rain = new THREE.Points(rainGeo, rainMaterial);
+  const rain = new THREE.Points(rainGeo, rainMaterial);
   scene.add(rain);
 
   // europa
+  const europaGeo = new THREE.SphereGeometry(3, 128, 128);
+  const europaMat = new THREE.MeshLambertMaterial();
+  const europa = new THREE.Mesh(europaGeo, europaMat);
+  let textures: THREE.Texture[] = [];
+  europa.position.set(0, 0, 0);
   loadTextures(
     new THREE.TextureLoader(),
     ["./europa.jpg", "./moon.jpg"],
     (textures_) => {
-      textures = textures_;
-      const europaGeo = new THREE.SphereGeometry(3, 128, 128);
-      europaMat = new THREE.MeshLambertMaterial({ map: textures[1] });
-      europa = new THREE.Mesh(europaGeo, europaMat);
-      europa.position.set(0, 0, 0);
+      textures_.forEach((t) => textures.push(t));
+      europaMat.map = textures[0];
       scene.add(europa);
     }
   );
@@ -102,11 +101,20 @@ const init = () => {
   const container = document.getElementById("visual");
   container.appendChild(renderer.domElement);
 
+  // particle
+
+  const { particles, updateParticle: updateParticle_ } = makeParticles(
+    renderer,
+    camera
+  );
+  scene.add(particles);
+  updateParticle = updateParticle_;
+
   // post process
-  composer = new EffectComposer(renderer);
+  const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
   const fxaaPass = new ShaderPass(FXAAShader);
-  glitchPass = new GlitchPass();
+  const glitchPass = new GlitchPass();
 
   const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
@@ -119,9 +127,27 @@ const init = () => {
   composer.addPass(fxaaPass);
   composer.addPass(glitchPass);
   composer.render();
+
+  return {
+    renderer,
+    rainDropVelocitys,
+    rainGeo,
+    europa,
+    composer,
+    rain,
+    textures,
+    glitchPass,
+  };
 };
 
-const animate = () => {
+const animate = ({
+  rainDropVelocitys,
+  rainGeo,
+  europa,
+  composer,
+  rain,
+  glitchPass,
+}) => {
   if (rainGeo && rainDropVelocitys) {
     rainGeo.vertices.forEach((p, i) => {
       p.add(rainDropVelocitys[i]);
@@ -140,6 +166,8 @@ const animate = () => {
     europa.rotation.y += 0.001;
   }
 
+  // updateParticle();
+
   isGlitch -= 0.05;
   isGlitch = THREE.MathUtils.clamp(isGlitch, 0, 1);
   if (isGlitch > 0) {
@@ -149,10 +177,13 @@ const animate = () => {
   }
   composer.render();
 
-  requestAnimationFrame(animate);
+  requestAnimationFrame(() =>
+    animate({ rainDropVelocitys, rainGeo, europa, composer, rain, glitchPass })
+  );
 };
 
-const resize = () => {
+const resize = (renderer: THREE.WebGLRenderer) => {
+  const { height, width } = getWindowSize();
   renderer.setSize(width, height);
   window.addEventListener("resize", () => {
     console.log("set size");
@@ -174,9 +205,18 @@ export const mount = () => {
   );
   document.body.appendChild(container);
 
-  init();
-  resize();
-  animate();
+  const {
+    renderer,
+    rainDropVelocitys,
+    rainGeo,
+    europa,
+    composer,
+    rain,
+    textures,
+    glitchPass,
+  } = init();
+  resize(renderer);
+  animate({ rainDropVelocitys, rainGeo, europa, composer, rain, glitchPass });
 
   let texIdx = 0;
   document.body.addEventListener("click", () => {
@@ -189,7 +229,9 @@ export const mount = () => {
       }
     };
     toggoleSat();
-    europaMat.map = textures[texIdx];
-    isGlitch = 1;
+    if (textures && textures.length) {
+      europa.material.map = textures[texIdx];
+      isGlitch = 1;
+    }
   });
 };
