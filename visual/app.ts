@@ -80,6 +80,47 @@ const makeRain = () => {
   return { rain, updateRain };
 };
 
+const makeEuropa = (cb: (europa: THREE.Mesh) => void) => {
+  const europaGeo = new THREE.SphereGeometry(3, 128, 128);
+  const europaMat = new THREE.MeshLambertMaterial();
+  const europa = new THREE.Mesh(europaGeo, europaMat);
+  let textures: THREE.Texture[] = [];
+  europa.position.set(0, 0, 0);
+  loadTextures(
+    new THREE.TextureLoader(),
+    ["./europa.jpg", "./moon.jpg"],
+    (textures_) => {
+      textures_.forEach((t) => textures.push(t));
+      europaMat.map = textures[0];
+      cb(europa);
+      // scene.add(europa);
+    }
+  );
+
+  let texIdx = 0;
+  document.body.addEventListener("click", () => {
+    const toggoleSat = () => {
+      if (isGlitch > 0) return;
+      if (texIdx === 0) {
+        texIdx = 1;
+      } else {
+        texIdx = 0;
+      }
+    };
+    toggoleSat();
+    if (textures && textures.length) {
+      europa.material.map = textures[texIdx];
+      isGlitch = 1;
+    }
+  });
+
+  const updateEuropa = () => {
+    europa.rotation.y += 0.001;
+  };
+
+  return { europa, updateEuropa };
+};
+
 const init = () => {
   const scene = new THREE.Scene();
   const { height, width } = getWindowSize();
@@ -106,20 +147,7 @@ const init = () => {
   scene.add(rain);
 
   // europa
-  const europaGeo = new THREE.SphereGeometry(3, 128, 128);
-  const europaMat = new THREE.MeshLambertMaterial();
-  const europa = new THREE.Mesh(europaGeo, europaMat);
-  let textures: THREE.Texture[] = [];
-  europa.position.set(0, 0, 0);
-  loadTextures(
-    new THREE.TextureLoader(),
-    ["./europa.jpg", "./moon.jpg"],
-    (textures_) => {
-      textures_.forEach((t) => textures.push(t));
-      europaMat.map = textures[0];
-      scene.add(europa);
-    }
-  );
+  const { updateEuropa } = makeEuropa((europa) => scene.add(europa));
 
   const container = document.getElementById("visual");
   container.appendChild(renderer.domElement);
@@ -154,19 +182,16 @@ const init = () => {
   return {
     renderer,
     updateRain,
-    europa,
+    updateEuropa,
     composer,
     rain,
-    textures,
     glitchPass,
   };
 };
 
-const animate = ({ updateRain, europa, composer, rain, glitchPass }) => {
+const animate = ({ updateRain, updateEuropa, composer, rain, glitchPass }) => {
   updateRain();
-  if (europa) {
-    europa.rotation.y += 0.001;
-  }
+  updateEuropa();
 
   // updateParticle();
 
@@ -180,7 +205,7 @@ const animate = ({ updateRain, europa, composer, rain, glitchPass }) => {
   composer.render();
 
   requestAnimationFrame(() =>
-    animate({ updateRain, europa, composer, rain, glitchPass })
+    animate({ updateRain, updateEuropa, composer, rain, glitchPass })
   );
 };
 
@@ -210,29 +235,11 @@ export const mount = () => {
   const {
     renderer,
     updateRain,
-    europa,
+    updateEuropa,
     composer,
     rain,
-    textures,
     glitchPass,
   } = init();
   resize(renderer);
-  animate({ updateRain, europa, composer, rain, glitchPass });
-
-  let texIdx = 0;
-  document.body.addEventListener("click", () => {
-    const toggoleSat = () => {
-      if (isGlitch > 0) return;
-      if (texIdx === 0) {
-        texIdx = 1;
-      } else {
-        texIdx = 0;
-      }
-    };
-    toggoleSat();
-    if (textures && textures.length) {
-      europa.material.map = textures[texIdx];
-      isGlitch = 1;
-    }
-  });
+  animate({ updateRain, updateEuropa, composer, rain, glitchPass });
 };
