@@ -153,7 +153,6 @@ const init = () => {
   container.appendChild(renderer.domElement);
 
   // particle
-
   const { particles, updateParticle: updateParticle_ } = makeParticles(
     renderer,
     camera
@@ -193,7 +192,7 @@ const animate = ({ updateRain, updateEuropa, composer, rain, glitchPass }) => {
   updateRain();
   updateEuropa();
 
-  // updateParticle();
+  updateParticle();
 
   isGlitch -= 0.05;
   isGlitch = THREE.MathUtils.clamp(isGlitch, 0, 1);
