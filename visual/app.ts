@@ -7,6 +7,7 @@ import { GlitchPass } from "./glitchPass";
 import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 
 import { makeParticles } from "./particle";
+import { Camera } from "three";
 
 let isGlitch: number = 0;
 let updateParticle: any;
@@ -81,8 +82,8 @@ const makeRain = () => {
 };
 
 const makeEuropa = (cb: (europa: THREE.Mesh) => void) => {
-  const europaGeo = new THREE.SphereGeometry(3, 128, 128);
-  const europaMat = new THREE.MeshLambertMaterial();
+  const europaGeo = new THREE.SphereGeometry(20, 128, 128);
+  const europaMat = new THREE.MeshLambertMaterial({});
   const europa = new THREE.Mesh(europaGeo, europaMat);
   let textures: THREE.Texture[] = [];
   europa.position.set(0, 0, 0);
@@ -121,14 +122,19 @@ const makeEuropa = (cb: (europa: THREE.Mesh) => void) => {
   return { europa, updateEuropa };
 };
 
+const makeCamera = (width: number, height: number) => {
+  const camera = new THREE.PerspectiveCamera(50, width / height);
+  camera.position.y = 0;
+  camera.position.z = 100;
+  camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+  return camera;
+};
+
 const init = () => {
   const scene = new THREE.Scene();
   const { height, width } = getWindowSize();
-  const camera = new THREE.PerspectiveCamera(50, width / height);
-  camera.position.y = -10;
-  camera.position.z = 10;
-
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  const camera = makeCamera(width, height);
 
   const ambient = new THREE.AmbientLight();
   scene.add(ambient);
@@ -158,7 +164,9 @@ const init = () => {
     camera
   );
   scene.add(particles);
-  updateParticle = updateParticle_;
+  updateParticle = () => {
+    updateParticle_();
+  };
 
   // post process
   const composer = new EffectComposer(renderer);
@@ -179,6 +187,7 @@ const init = () => {
   composer.render();
 
   return {
+    camera,
     renderer,
     updateRain,
     updateEuropa,
@@ -188,7 +197,14 @@ const init = () => {
   };
 };
 
-const animate = ({ updateRain, updateEuropa, composer, rain, glitchPass }) => {
+const animate = ({
+  updateRain,
+  updateEuropa,
+  composer,
+  rain,
+  glitchPass,
+  camera,
+}) => {
   updateRain();
   updateEuropa();
 
@@ -204,7 +220,7 @@ const animate = ({ updateRain, updateEuropa, composer, rain, glitchPass }) => {
   composer.render();
 
   requestAnimationFrame(() =>
-    animate({ updateRain, updateEuropa, composer, rain, glitchPass })
+    animate({ camera, updateRain, updateEuropa, composer, rain, glitchPass })
   );
 };
 
@@ -232,6 +248,7 @@ export const mount = () => {
   document.body.appendChild(container);
 
   const {
+    camera,
     renderer,
     updateRain,
     updateEuropa,
@@ -240,5 +257,5 @@ export const mount = () => {
     glitchPass,
   } = init();
   resize(renderer);
-  animate({ updateRain, updateEuropa, composer, rain, glitchPass });
+  animate({ camera, updateRain, updateEuropa, composer, rain, glitchPass });
 };
