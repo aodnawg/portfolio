@@ -8,43 +8,53 @@ const ContentDynamic = dynamic(() => import("../components/Visual/Visual"), {
   ssr: false,
 });
 
+interface NavItemProps {
+  href: string;
+  text: string;
+}
+
+const NavItem: React.FC<NavItemProps> = ({ href, text }) => {
+  return (
+    <li>
+      <Link href={href}>
+        <a className="font-black">{text}</a>
+      </Link>
+    </li>
+  );
+};
+
+const navDate: NavItemProps[] = [
+  { href: "/me", text: "me" },
+  { href: "/works", text: "works" },
+  { href: "/text", text: "text" },
+  { href: "/social", text: "social media" },
+];
+
 function MyApp({ Component, pageProps }) {
   return (
     <>
       <ContentDynamic />
-      <div className="relative z-10 m-6">
+      <section className="relative z-10 m-6">
         <div>
-          <h2 className="h text-4xl mb-3">
+          <h1 className="h text-4xl mb-3">
             <Link href="/">
               <a>aodnawg</a>
             </Link>
-          </h2>
+          </h1>
         </div>
         <div className="md:flex">
           <div className="mr-6 w-1/4 mb-6">
             <ul className="text-">
-              <li>
-                <Link href="/me">
-                  <a>me</a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/works">
-                  <a>works</a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/social">
-                  <a>social media</a>
-                </Link>
-              </li>
+              {navDate.map((props) => (
+                <NavItem {...props} />
+              ))}
             </ul>
           </div>
           <div>
             <Component {...pageProps} />
           </div>
         </div>
-      </div>
+      </section>
     </>
   );
 }

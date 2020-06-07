@@ -239,7 +239,9 @@ export const mount = () => {
   container.setAttribute(
     "style",
     `
-    position: absolute;
+    position: fixed;
+    width: 100%;
+    height: 100%;
     top: 0;
     left: 0;
     z-index; -1;
